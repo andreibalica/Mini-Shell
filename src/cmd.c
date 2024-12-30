@@ -95,9 +95,8 @@ void command_redirections(simple_command_t *s) {
  * Internal change-directory command.
  */
 static bool shell_cd(word_t *dir) {
-	/* TODO: Execute cd. */
-	
-	return 0;
+   char *path = get_word(dir);
+   return chdir(path);
 }
 
 /**
@@ -127,14 +126,25 @@ static int parse_simple(simple_command_t *s, int level, command_t *father) {
     return -1;
 
   if (strcmp(cmd_name, "cd") == 0) {
-    free(cmd_name);
+    int saved_stdout = dup(STDOUT_FILENO);
+    int saved_stderr = dup(STDERR_FILENO);
+        
     command_redirections(s);
-    return shell_cd(s->params);
+    int ret = shell_cd(s->params);
+        
+    dup2(saved_stdout, STDOUT_FILENO);
+    dup2(saved_stderr, STDERR_FILENO);
+    close(saved_stdout);
+    close(saved_stderr);
+        
+    free(cmd_name);
+    return ret;
   }
   if (strcmp(cmd_name, "exit") == 0) {
     free(cmd_name);
     return shell_exit();
   }
+  
 
   /* TODO: If variable assignment, execute the assignment and return
    * the exit status.
@@ -215,6 +225,8 @@ int parse_command(command_t *c, int level, command_t *father) {
   switch (c->op) {
   case OP_SEQUENTIAL:
     /* TODO: Execute the commands one after the other. */
+	 status = parse_command(c->cmd1, level + 1, c);
+	 return parse_command(c->cmd2, level + 1, c);	
     break;
 
   case OP_PARALLEL:
@@ -225,12 +237,20 @@ int parse_command(command_t *c, int level, command_t *father) {
     /* TODO: Execute the second command only if the first one
      * returns non zero.
      */
+	 status = parse_command(c->cmd1, level + 1, c);
+    if (status != 0)
+      return parse_command(c->cmd2, level + 1, c);
+    return status;
     break;
 
   case OP_CONDITIONAL_ZERO:
     /* TODO: Execute the second command only if the first one
      * returns zero.
      */
+	 status = parse_command(c->cmd1, level + 1, c);
+    if (status == 0)
+      return parse_command(c->cmd2, level + 1, c);
+    return status;
     break;
 
   case OP_PIPE:
