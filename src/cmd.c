@@ -91,37 +91,19 @@ void command_redirections(simple_command_t *s) {
   }
 }
 
-/**
- * Internal change-directory command.
- */
 static bool shell_cd(word_t *dir) {
-  /* TODO: Execute cd. */
   char *path = get_word(dir);
   return chdir(path);
 }
 
-/**
- * Internal exit/quit command.
- */
-static int shell_exit(void) {
-  /* TODO: Execute exit/quit. */
-  return SHELL_EXIT;
-}
+static int shell_exit(void) { return SHELL_EXIT; }
 
-/**
- * Parse a simple command (internal, environment variable assignment,
- * external command).
- */
 static int parse_simple(simple_command_t *s, int level, command_t *father) {
-
-  /* TODO: Sanity checks. */
 
   if (s == NULL)
     return -1;
   if (s->verb == NULL)
     return -1;
-
-  /* TODO: If builtin command, execute the command. */
 
   char *cmd_name = get_word(s->verb);
   if (cmd_name == NULL)
@@ -146,18 +128,6 @@ static int parse_simple(simple_command_t *s, int level, command_t *father) {
     free(cmd_name);
     return shell_exit();
   }
-
-  /* TODO: If variable assignment, execute the assignment and return
-   * the exit status.
-   */
-
-  /* TODO: If external command:
-   *   1. Fork new process
-   *     2c. Perform redirections in child
-   *     3c. Load executable in child
-   *   2. Wait for child
-   *   3. Return exit status
-   */
 
   int size;
   char **argv = get_argv(s, &size);
@@ -200,12 +170,8 @@ static int parse_simple(simple_command_t *s, int level, command_t *father) {
   return WEXITSTATUS(status);
 }
 
-/**
- * Process two commands in parallel, by creating two children.
- */
 static bool run_in_parallel(command_t *cmd1, command_t *cmd2, int level,
                             command_t *father) {
-  /* TODO: Execute cmd1 and cmd2 simultaneously. */
 
   pid_t pid1 = fork();
   if (pid1 < 0) {
@@ -234,27 +200,17 @@ static bool run_in_parallel(command_t *cmd1, command_t *cmd2, int level,
   return WEXITSTATUS(status1) && WEXITSTATUS(status2);
 }
 
-/**
- * Run commands by creating an anonymous pipe (cmd1 | cmd2).
- */
 static bool run_on_pipe(command_t *cmd1, command_t *cmd2, int level,
                         command_t *father) {
-  /* TODO: Redirect the output of cmd1 to the input of cmd2. */
-
-  return true; /* TODO: Replace with actual exit status. */
+  return true;
 }
 
-/**
- * Parse and execute a command.
- */
 int parse_command(command_t *c, int level, command_t *father) {
-  /* TODO: sanity checks */
   int status;
   if (c == NULL)
     return -1;
 
   if (c->op == OP_NONE) {
-    /* TODO: Execute a simple command. */
     if (c->scmd == NULL)
       return -1;
     return parse_simple(c->scmd, level, c);
@@ -262,20 +218,15 @@ int parse_command(command_t *c, int level, command_t *father) {
 
   switch (c->op) {
   case OP_SEQUENTIAL:
-    /* TODO: Execute the commands one after the other. */
     status = parse_command(c->cmd1, level + 1, c);
     return parse_command(c->cmd2, level + 1, c);
     break;
 
   case OP_PARALLEL:
-    /* TODO: Execute the commands simultaneously. */
     return run_in_parallel(c->cmd1, c->cmd2, level, c);
     break;
 
   case OP_CONDITIONAL_NZERO:
-    /* TODO: Execute the second command only if the first one
-     * returns non zero.
-     */
     status = parse_command(c->cmd1, level + 1, c);
     if (status != 0)
       return parse_command(c->cmd2, level + 1, c);
@@ -283,9 +234,6 @@ int parse_command(command_t *c, int level, command_t *father) {
     break;
 
   case OP_CONDITIONAL_ZERO:
-    /* TODO: Execute the second command only if the first one
-     * returns zero.
-     */
     status = parse_command(c->cmd1, level + 1, c);
     if (status == 0)
       return parse_command(c->cmd2, level + 1, c);
@@ -293,14 +241,11 @@ int parse_command(command_t *c, int level, command_t *father) {
     break;
 
   case OP_PIPE:
-    /* TODO: Redirect the output of the first command to the
-     * input of the second.
-     */
     break;
 
   default:
     return SHELL_EXIT;
   }
 
-  return 0; /* TODO: Replace with actual exit code of command. */
+  return 0;
 }
